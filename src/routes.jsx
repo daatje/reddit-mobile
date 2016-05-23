@@ -4,6 +4,7 @@ import React from 'react';
 import querystring from 'querystring';
 
 import merge from 'lodash/object/merge';
+import uniq from 'lodash/array/uniq';
 import url from 'url';
 
 // components
@@ -33,6 +34,7 @@ import { SORTS } from './sortValues';
 import isFakeSubreddit, { randomSubs } from './lib/isFakeSubreddit';
 import makeRequest from './lib/makeRequest';
 import features from './featureflags';
+import localStorageAvailable from './lib/localStorageAvailable';
 
 const config = defaultConfig;
 
@@ -428,6 +430,20 @@ function routes(app) {
       commentId: ctx.params.commentId,
     });
 
+    if (localStorageAvailable()) {
+      const visitedString = global.localStorage.getItem(constants.VISITED_POSTS_KEY);
+      let visited;
+      if (visitedString) {
+        visited = visitedString.split(',');
+      } else {
+        visited = [];
+      }
+      visited = uniq([ctx.params.listingId].concat(visited))
+        .slice(0,constants.VISITED_POST_COUNT)
+        .join(',');
+      global.localStorage.setItem(constants.VISITED_POSTS_KEY, visited);
+    }
+
     const commentsOpts = buildAPIOptions(ctx, {
       linkId: ctx.params.listingId,
       sort: ctx.query.sort || 'confidence',
@@ -460,7 +476,11 @@ function routes(app) {
           finished: false,
         },
       });
-      if (feature.enabled(constants.flags.VARIANT_RELEVANCY_TOP)) {
+      if (feature.enabled(constants.flags.VARIANT_RELEVANCY_TOP) ||
+          feature.enabled(constants.flags.VARIANT_NEXTCONTENT_BOTTOM) ||
+          feature.enabled(constants.flags.VARIANT_NEXTCONTENT_BANNER) ||
+          feature.enabled(constants.flags.VARIANT_NEXTCONTENT_TOP3) ||
+          feature.enabled(constants.flags.VARIANT_NEXTCONTENT_MIDDLE)) {
         const linkOpts = buildAPIOptions(ctx, {
           query: {
             subredditName: props.subredditName,
