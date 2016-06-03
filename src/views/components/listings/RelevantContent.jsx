@@ -3,6 +3,7 @@ import React from 'react';
 import first from 'lodash/array/first';
 import take from 'lodash/array/take';
 import filter from 'lodash/collection/filter';
+import some from 'lodash/collection/some';
 import range from 'lodash/utility/range';
 import curryRight from 'lodash/function/curryRight';
 import flow from 'lodash/function/flow';
@@ -198,6 +199,8 @@ export default class RelevantContent extends BaseComponent {
       );
     }
 
+    const hasThumbs = some(posts, post => !!post.thumbnail && post.thumbnail !== '');
+
     return posts.map((post, i) => {
       const linkExternally = post.disable_comments;
       const url = cleanPostHREF(mobilify(linkExternally ? post.url : post.cleanPermalink));
@@ -213,7 +216,7 @@ export default class RelevantContent extends BaseComponent {
       const onClick = makeOnClick(url, name, i);
       const noop = (e => e.preventDefault());
       return (
-        <article ref='rootNode' className='Post' key={ id }>
+        <article ref='rootNode' className={ `Post ${hasThumbs ? '' : 'no-thumbs'}` } key={ id }>
           <div className='Post__header-wrapper' onClick={ onClick }>
             <PostContent
               post={ postWithFallback }
